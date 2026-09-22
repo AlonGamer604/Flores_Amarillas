@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Para Ahri - Flores Amarillas</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: linear-gradient(135deg, #09090e 0%, #161224 100%);
+            height: 100vh;
+            height: 100dvh; /* Soporte para pantallas móviles modernas */
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+            color: #fff;
+            touch-action: manipulation;
+        }
+        .header-container {
+            width: 100%;
+            padding: 25px 20px 10px 20px;
+            text-align: center;
+            z-index: 10;
+            pointer-events: none;
+        }
+        h1 {
+            font-size: 1.8rem;
+            font-weight: 300;
+            letter-spacing: 2px;
+            color: #ffd700;
+            text-shadow: 0 0 15px rgba(255, 215, 0, 0.6);
+            margin-bottom: 6px;
+        }
+        .frase {
+            font-size: 0.95rem;
+            font-style: italic;
+            color: #ffea75;
+            letter-spacing: 0.5px;
+            text-shadow: 0 0 10px rgba(255, 234, 117, 0.4);
+            line-height: 1.4;
+            max-width: 340px;
+            margin: 0 auto;
+        }
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: block;
+            z-index: 1;
+        }
+        .footer-note {
+            width: 100%;
+            padding: 15px;
+            text-align: center;
+            font-size: 0.8rem;
+            color: #888;
+            letter-spacing: 1px;
+            z-index: 10;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header-container">
+        <h1>Para Ahri 💛</h1>
+        <div class="frase">Las flores amarillas son para celebrar tu camino, tu fuerza y esa entrega inagotable con la que conquistas cada meta.</div>
+    </div>
+
+    <canvas id="ramoCanvas"></canvas>
+    
+    <div class="footer-note">Toca la pantalla para sumar más flores</div>
+
+    <script>
+        const canvas = document.getElementById('ramoCanvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // ==========================================
+        // 1. CLASE LUCIÉRNAGA
+        // ==========================================
+        class Luciernaga {
+            constructor(ancho, alto) {
+                this.ancho = ancho;
+                this.alto = alto;
+                this.reiniciar();
+            }
+
+            reiniciar() {
+                this.x = Math.random() * this.ancho;
+                this.y = Math.random() * this.alto;
+                this.radio = Math.random() * 2.5 + 1;
+                this.velX = (Math.random() - 0.5) * 0.5;
+                this.velY = (Math.random() - 0.5) * 0.5 - 0.2;
+                this.brillo = Math.random();
+                this.velBrillo = Math.random() * 0.03 + 0.01;
+            }
+
+            actualizar() {
+                this.x += this.velX;
+                this.y += this.velY;
+                this.brillo += this.velBrillo;
+                if (this.x < 0 || this.x > this.ancho || this.y < 0 || this.y > this.alto) {
+                    this.reiniciar();
+                }
+            }
+
+            dibujar(contexto) {
+                contexto.save();
+                const opacidad = (Math.sin(this.brillo) + 1) / 2 * 0.8 + 0.1;
+                
+                contexto.beginPath();
+                contexto.arc(this.x, this.y, this.radio * 2.5, 0, Math.PI * 2);
+                contexto.fillStyle = `rgba(255, 230, 100, ${opacidad * 0.3})`;
+                contexto.fill();
+                contexto.closePath();
+
+                contexto.beginPath();
+                contexto.arc(this.x, this.y, this.radio, 0, Math.PI * 2);
+                contexto.fillStyle = `rgba(255, 255, 150, ${opacidad})`;
+                contexto.fill();
+                contexto.closePath();
+                contexto.restore();
+            }
+        }
+
+        // ==========================================
+        // 2. CLASE ABEJA
+        // ==========================================
+        class Abeja {
+            constructor(centroX, centroY) {
+                this.centroX = centroX;
+                this.centroY = centroY;
+                this.anguloOrbita = Math.random() * Math.PI * 2;
+                this.radioOrbitaX = 90 + Math.random() * 50;
+                this.radioOrbitaY = 45 + Math.random() * 25;
+                this.velocidad = 0.015 + Math.random() * 0.01;
+                this.x = centroX;
+                this.y = centroY;
+                this.aleteo = 0;
+            }
+
+            actualizar(centroRamoX, centroRamoY) {
+                this.anguloOrbita += this.velocidad;
+                this.aleteo += 0.4;
+
+                const objetivoX = centroRamoX + Math.cos(this.anguloOrbita) * this.radioOrbitaX;
+                const objetivoY = (centroRamoY - 20) + Math.sin(this.anguloOrbita * 2) * (this.radioOrbitaY * 0.5) + Math.sin(this.anguloOrbita) * 20;
+
+                this.x += (objetivoX - this.x) * 0.05;
+                this.y += (objetivoY - this.y) * 0.05;
+            }
+
+            dibujar(contexto) {
+                contexto.save();
+                contexto.translate(this.x, this.y);
+
+                const direccion = Math.cos(this.anguloOrbita) > 0 ? 1 : -1;
+                contexto.scale(direccion, 1);
+
+                contexto.beginPath();
+                contexto.ellipse(0, 0, 7, 5, 0, 0, Math.PI * 2);
+                contexto.fillStyle = '#ffcc00';
+                contexto.fill();
+                contexto.strokeStyle = '#332200';
+                contexto.lineWidth = 1;
+                contexto.stroke();
+                contexto.closePath();
+
+                contexto.beginPath();
+                contexto.rect(-2, -5, 2, 10);
+                contexto.fillStyle = '#111';
+                contexto.fill();
+                contexto.closePath();
+
+                contexto.beginPath();
+                contexto.arc(7, 0, 3, 0, Math.PI * 2);
+                contexto.fillStyle = '#222';
+                contexto.fill();
+                contexto.closePath();
+
+                const desplazamientoAla = Math.sin(this.aleteo) * 4;
+                contexto.beginPath();
+                contexto.ellipse(0, -6, 3, 7, Math.PI / 4 + desplazamientoAla * 0.1, 0, Math.PI * 2);
+                contexto.fillStyle = 'rgba(255, 255, 255, 0.7)';
+                contexto.fill();
+                contexto.stroke();
+                contexto.closePath();
+
+                contexto.restore();
+            }
+        }
+
+        // ==========================================
+        // 3. CLASE HOJA
+        // ==========================================
+        class Hoja {
+            constructor(xFinal, yFinal, angulo, escala) {
+                this.xFinal = xFinal;
+                this.yFinal = yFinal;
+                this.angulo = angulo;
+                this.escala = escala;
+                this.xActual = xFinal + (Math.random() - 0.5) * 300;
+                this.yActual = yFinal + 250 + Math.random() * 150;
+                this.opacidad = 0;
+            }
+
+            actualizar(segundos) {
+                if (segundos < 0.5) return;
+                if (this.opacidad < 1) this.opacidad += 0.05;
+
+                this.xActual += (this.xFinal - this.xActual) * 0.06;
+                this.yActual += (this.yFinal - this.yActual) * 0.06;
+            }
+
+            dibujar(contexto) {
+                if (this.opacidad <= 0) return;
+                contexto.save();
+                contexto.globalAlpha = this.opacidad;
+                contexto.translate(this.xActual, this.yActual);
+                contexto.rotate(this.angulo);
+                contexto.scale(this.escala, this.escala);
+
+                contexto.beginPath();
+                contexto.moveTo(0, 0);
+                contexto.quadraticCurveTo(18, -25, 0, -50);
+                contexto.quadraticCurveTo(-18, -25, 0, 0);
+                contexto.fillStyle = '#226b3f';
+                contexto.fill();
+                contexto.closePath();
+                contexto.restore();
+            }
+        }
+
+        // ==========================================
+        // 4. CLASE FLOR
+        // ==========================================
+        class Flor {
+            constructor(xFinal, yFinal, radio, colorPetalos, origenX = null, origenY = null, retraso = 0) {
+                this.xFinal = xFinal;
+                this.yFinal = yFinal;
+                this.radio = radio;
+                this.colorPetalos = colorPetalos;
+                this.retraso = retraso;
+                this.anguloOffset = Math.random() * Math.PI * 2;
+                this.opacidad = 0;
+                
+                if (origenX !== null && origenY !== null) {
+                    this.xActual = origenX;
+                    this.yActual = origenY;
+                } else {
+                    const lado = Math.floor(Math.random() * 4);
+                    if (lado === 0) {
+                        this.xActual = Math.random() * window.innerWidth;
+                        this.yActual = -100;
+                    } else if (lado === 1) {
+                        this.xActual = Math.random() * window.innerWidth;
+                        this.yActual = window.innerHeight + 100;
+                    } else if (lado === 2) {
+                        this.xActual = -100;
+                        this.yActual = Math.random() * window.innerHeight;
+                    } else {
+                        this.xActual = window.innerWidth + 100;
+                        this.yActual = Math.random() * window.innerHeight;
+                    }
+                }
+
+                this.controlX = (this.xActual + xFinal) / 2 + (Math.random() - 0.5) * 200;
+                this.controlY = (this.yActual + yFinal) / 2 + (Math.random() - 0.5) * 200;
+                this.progreso = 0;
+            }
+
+            actualizar(segundosGlobales) {
+                if (segundosGlobales < this.retraso) return;
+
+                if (this.opacidad < 1) {
+                    this.opacidad += 0.08;
+                }
+
+                if (this.progreso < 1) {
+                    this.progreso += 0.025;
+                    if (this.progreso > 1) this.progreso = 1;
+
+                    const t = this.progreso;
+                    const invT = 1 - t;
+                    this.xActual = invT * invT * this.xActual + 2 * invT * t * this.controlX + t * t * this.xFinal;
+                    this.yActual = invT * invT * this.yActual + 2 * invT * t * this.controlY + t * t * this.yFinal;
+                } else {
+                    this.xActual += (this.xFinal - this.xActual) * 0.12;
+                    this.yActual += (this.yFinal - this.yActual) * 0.12;
+                }
+            }
+
+            dibujar(contexto, tiempo) {
+                if (this.opacidad <= 0) return;
+
+                contexto.save();
+                contexto.globalAlpha = this.opacidad;
+                
+                const offsetX = Math.sin(tiempo * 0.002 + this.anguloOffset) * 1.5;
+                const offsetY = Math.cos(tiempo * 0.002 + this.anguloOffset) * 1.5;
+                
+                contexto.translate(this.xActual + offsetX, this.yActual + offsetY);
+
+                const numPetalos = 10;
+                for (let i = 0; i < numPetalos; i++) {
+                    const angulo = (i * 2 * Math.PI) / numPetalos;
+                    contexto.save();
+                    contexto.rotate(angulo);
+                    
+                    contexto.beginPath();
+                    contexto.fillStyle = this.colorPetalos;
+                    contexto.ellipse(0, -this.radio * 1.1, this.radio * 0.4, this.radio * 0.95, 0, 0, Math.PI * 2);
+                    contexto.fill();
+                    contexto.closePath();
+                    contexto.restore();
+                }
+
+                contexto.beginPath();
+                contexto.arc(0, 0, this.radio * 0.45, 0, Math.PI * 2);
+                contexto.fillStyle = '#ff8c00';
+                contexto.fill();
+                contexto.closePath();
+
+                contexto.beginPath();
+                contexto.arc(0, 0, this.radio * 0.22, 0, Math.PI * 2);
+                contexto.fillStyle = '#b35900';
+                contexto.fill();
+                contexto.closePath();
+
+                contexto.restore();
+            }
+        }
+
+        // ==========================================
+        // 5. CLASE TALLO
+        // ==========================================
+        class Tallo {
+            constructor(endX, endY) {
+                this.endX = endX;
+                this.endY = endY;
+            }
+
+            dibujar(contexto, florX, florY, opacidadFlor) {
+                if (opacidadFlor <= 0) return;
+                contexto.save();
+                contexto.globalAlpha = opacidadFlor;
+
+                contexto.beginPath();
+                contexto.moveTo(florX, florY);
+                contexto.quadraticCurveTo(
+                    florX + (this.endX - florX) * 0.3, 
+                    florY + (this.endY - florY) * 0.5, 
+                    this.endX, 
+                    this.endY
+                );
+                contexto.strokeStyle = '#1d5c35';
+                contexto.lineWidth = 3.5;
+                contexto.lineCap = 'round';
+                contexto.stroke();
+                contexto.closePath();
+
+                contexto.restore();
+            }
+        }
+
+        // ==========================================
+        // 6. CLASE ENVOLTORIO
+        // ==========================================
+        class Envoltorio {
+            constructor(centroX, centroY) {
+                this.centroX = centroX;
+                this.centroY = centroY;
+                this.progresoAnimacion = 0;
+            }
+
+            actualizar() {
+                if (this.progresoAnimacion < 1) {
+                    this.progresoAnimacion += 0.03;
+                }
+            }
+
+            dibujar(contexto) {
+                if (this.progresoAnimacion <= 0) return;
+
+                contexto.save();
+                const x = this.centroX;
+                const yOffset = (1 - this.progresoAnimacion) * 120; 
+                const y = this.centroY + 50 + yOffset;
+                const escalaY = this.progresoAnimacion;
+
+                contexto.translate(x, y);
+                contexto.scale(1, escalaY);
+                contexto.translate(-x, -y);
+
+                contexto.beginPath();
+                contexto.moveTo(x - 80, y - 20);
+                contexto.lineTo(x + 80, y - 20);
+                contexto.lineTo(x + 30, y + 125);
+                contexto.lineTo(x - 30, y + 125);
+                contexto.fillStyle = '#b89368';
+                contexto.fill();
+                contexto.closePath();
+
+                contexto.beginPath();
+                contexto.moveTo(x - 75, y - 10);
+                contexto.lineTo(x - 12, y - 25);
+                contexto.lineTo(x - 22, y + 130);
+                contexto.lineTo(x - 65, y + 105);
+                contexto.fillStyle = '#d9b48f';
+                contexto.fill();
+                contexto.closePath();
+
+                contexto.beginPath();
+                contexto.moveTo(x + 75, y - 10);
+                contexto.lineTo(x + 12, y - 25);
+                contexto.lineTo(x + 22, y + 130);
+                contexto.lineTo(x + 65, y + 105);
+                contexto.fillStyle = '#c49e75';
+                contexto.fill();
+                contexto.closePath();
+
+                contexto.beginPath();
+                contexto.moveTo(x - 22, y + 130);
+                contexto.lineTo(x + 22, y + 130);
+                contexto.lineTo(x, y + 155);
+                contexto.fillStyle = '#9e7b53';
+                contexto.fill();
+                contexto.closePath();
+
+                contexto.restore();
+            }
+        }
+
+        // ==========================================
+        // 7. CLASE MONO
+        // ==========================================
+        class Mono {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.escalaAnimacion = 0;
+            }
+
+            actualizar(activar) {
+                if (activar && this.escalaAnimacion < 1) {
+                    this.escalaAnimacion += 0.06;
+                }
+            }
+
+            dibujar(contexto) {
+                if (this.escalaAnimacion <= 0) return;
+
+                contexto.save();
+                contexto.translate(this.x, this.y);
+                contexto.scale(this.escalaAnimacion, this.escalaAnimacion);
+
+                contexto.beginPath();
+                contexto.ellipse(-20, -7, 20, 9, -Math.PI / 6, 0, Math.PI * 2);
+                contexto.fillStyle = '#ff3366';
+                contexto.fill();
+                contexto.strokeStyle = '#b8002e';
+                contexto.lineWidth = 1.5;
+                contexto.stroke();
+                contexto.closePath();
+
+                contexto.beginPath();
+                contexto.ellipse(20, -7, 20, 9, Math.PI / 6, 0, Math.PI * 2);
+                contexto.fillStyle = '#ff3366';
+                contexto.fill();
+                contexto.strokeStyle = '#b8002e';
+                contexto.lineWidth = 1.5;
+                contexto.stroke();
+                contexto.closePath();
+
+                contexto.beginPath();
+                contexto.arc(0, 0, 8, 0, Math.PI * 2);
+                contexto.fillStyle = '#cc0033';
+                contexto.fill();
+                contexto.closePath();
+
+                contexto.beginPath();
+                contexto.moveTo(-5, 6);
+                contexto.quadraticCurveTo(-16, 25, -25, 45);
+                contexto.lineTo(-15, 48);
+                contexto.quadraticCurveTo(-8, 28, -2, 8);
+                contexto.fillStyle = '#ff3366';
+                contexto.fill();
+                contexto.closePath();
+
+                contexto.beginPath();
+                contexto.moveTo(5, 6);
+                contexto.quadraticCurveTo(16, 25, 25, 45);
+                contexto.lineTo(15, 48);
+                contexto.quadraticCurveTo(8, 28, 2, 8);
+                contexto.fillStyle = '#e60039';
+                contexto.fill();
+                contexto.closePath();
+
+                contexto.restore();
+            }
+        }
+
+        // ==========================================
+        // 8. CLASE RAMO (Orquestador Principal)
+        // ==========================================
+        class Ramo {
+            constructor(centroX, centroY) {
+                this.centroX = centroX;
+                this.centroY = centroY;
+                this.flores = [];
+                this.tallos = [];
+                this.hojas = [];
+                this.luciernagas = [];
+                this.abejas = [];
+                this.envoltorio = new Envoltorio(centroX, centroY);
+                this.mono = new Mono(centroX, centroY + 55);
+                this.tiempoInicio = Date.now();
+                this.tonos = ['#ffe135', '#ffcc00', '#ffd700', '#ffea75', '#ffc72c'];
+                this.inicializarComponentes();
+            }
+
+            inicializarComponentes() {
+                const baseX = this.centroX;
+                const baseY = this.centroY + 110;
+
+                for (let i = 0; i < 8; i++) {
+                    const hx = this.centroX + (Math.random() * 120 - 60);
+                    const hy = this.centroY + 10 + Math.random() * 50;
+                    this.hojas.push(new Hoja(hx, hy, (Math.random() - 0.5) * 1.2, 0.7 + Math.random() * 0.3));
+                }
+
+                const cantidad = 11;
+                for (let i = 0; i < cantidad; i++) {
+                    const radioDisp = (i === 0) ? 0 : 20 + Math.random() * 65;
+                    const anguloDisp = (i === 0) ? 0 : (i / (cantidad - 1)) * Math.PI * 2 + Math.random() * 0.4;
+
+                    const florX = this.centroX + Math.cos(anguloDisp) * radioDisp;
+                    const florY = (this.centroY - 40) + Math.sin(anguloDisp) * (radioDisp * 0.6);
+                    const tamano = 18 + Math.random() * 6;
+                    const color = this.tonos[Math.floor(Math.random() * this.tonos.length)];
+                    const retraso = 0.2 + (i * 0.1);
+
+                    const flor = new Flor(florX, florY, tamano, color, null, null, retraso);
+                    const tallo = new Tallo(baseX + (Math.random() * 14 - 7), baseY);
+
+                    this.flores.push(flor);
+                    this.tallos.push(tallo);
+                }
+
+                for (let i = 0; i < 15; i++) {
+                    this.luciernagas.push(new Luciernaga(window.innerWidth, window.innerHeight));
+                }
+
+                for (let i = 0; i < 2; i++) {
+                    this.abejas.push(new Abeja(this.centroX, this.centroY));
+                }
+            }
+
+            agregarFlorInteractiva(clickX, clickY) {
+                const baseX = this.centroX;
+                const baseY = this.centroY + 110;
+
+                const radioDisp = 10 + Math.random() * 75;
+                const anguloDisp = Math.random() * Math.PI * 2;
+
+                const florX = this.centroX + Math.cos(anguloDisp) * radioDisp;
+                const florY = (this.centroY - 40) + Math.sin(anguloDisp) * (radioDisp * 0.6);
+                const tamano = 20 + Math.random() * 6;
+                const color = this.tonos[Math.floor(Math.random() * this.tonos.length)];
+
+                const flor = new Flor(florX, florY, tamano, color, clickX, clickY, 0);
+                const tallo = new Tallo(baseX + (Math.random() * 14 - 7), baseY);
+
+                this.flores.push(flor);
+                this.tallos.push(tallo);
+            }
+
+            renderizar(contexto, tiempoTotal) {
+                const segundos = (Date.now() - this.tiempoInicio) / 1000;
+
+                this.luciernagas.forEach(l => {
+                    l.actualizar();
+                    l.dibujar(contexto);
+                });
+
+                for (let i = 0; i < this.flores.length; i++) {
+                    this.flores[i].actualizar(segundos);
+                    this.tallos[i].dibujar(contexto, this.flores[i].xActual, this.flores[i].yActual + this.flores[i].radio * 0.4, this.flores[i].opacidad);
+                }
+
+                this.hojas.forEach(hoja => {
+                    hoja.actualizar(segundos);
+                    hoja.dibujar(contexto);
+                });
+
+                if (segundos > 1.8) {
+                    this.envoltorio.actualizar();
+                    this.envoltorio.dibujar(contexto);
+                }
+
+                this.flores.forEach(flor => flor.dibujar(contexto, tiempoTotal));
+
+                if (segundos > 2.8) {
+                    this.mono.actualizar(true);
+                    this.mono.dibujar(contexto);
+                }
+
+                if (segundos > 2.0) {
+                    this.abejas.forEach(abeja => {
+                        abeja.actualizar(this.centroX, this.centroY);
+                        abeja.dibujar(contexto);
+                    });
+                }
+            }
+        }
+
+        // Posicionar ligeramente más arriba para dejar buen espacio al texto y al ramo en vertical
+        const miRamo = new Ramo(canvas.width / 2, canvas.height / 2 + 25);
+
+        // Soporte tanto para clics como para toques en dispositivos móviles
+        window.addEventListener('pointerdown', (e) => {
+            // Evitar que toque si hace clic en zonas muy altas del texto para mejor comodidad
+            if (e.clientY > 120) {
+                miRamo.agregarFlorInteractiva(e.clientX, e.clientY);
+            }
+        });
+
+        function animar(tiempo) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            miRamo.centroX = canvas.width / 2;
+            miRamo.centroY = canvas.height / 2 + 25;
+            miRamo.envoltorio.centroX = miRamo.centroX;
+            miRamo.envoltorio.centroY = miRamo.centroY;
+            miRamo.mono.x = miRamo.centroX;
+            miRamo.mono.y = miRamo.centroY + 55;
+
+            miRamo.renderizar(ctx, tiempo);
+            requestAnimationFrame(animar);
+        }
+
+        requestAnimationFrame(animar);
+    </script>
+</body>
+</html>
